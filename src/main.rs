@@ -15,29 +15,29 @@ fn bf_open() -> Vec<u8> {
 }
 
 fn bf_init() -> Vec<u8> {
-    vec![0u8; 30000]
+    vec![0u8; 65536]
 }
 
 fn main() {
     let v: Vec<u8> = bf_open();
     let mut buf: Vec<u8> = bf_init();
     let mut i: usize = 0;
-    let mut p: usize = 0;
+    let mut p: u16 = 0;
     let mut stdin = std::io::stdin().lock();
     loop {
         match v.get(i) {
             None => { break; },
             Some(43) => { // +
-                buf[p] = buf[p].wrapping_add(1);
+                buf[p as usize] = buf[p as usize].wrapping_add(1);
             },
             Some(45) => { // -
-                buf[p] = buf[p].wrapping_sub(1);
+                buf[p as usize] = buf[p as usize].wrapping_sub(1);
             },
             Some(44) => { // ,
-                buf[p] = read_char(&mut stdin);
+                buf[p as usize] = read_char(&mut stdin);
             },
             Some(46) => { // .
-                print!("{}", char::from(buf[p]));
+                print!("{}", char::from(buf[p as usize]));
             },
             Some(62) => { // >
                 p = p.wrapping_add(1);
@@ -46,7 +46,7 @@ fn main() {
                 p = p.wrapping_sub(1);
             },
             Some(91) => { // [
-                if buf[p] == 0 {
+                if buf[p as usize] == 0 {
                     let mut s: usize = 0;
                     loop {
                         i += 1;
