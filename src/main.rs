@@ -1,8 +1,8 @@
 use std::io::Read;
 
-fn read_char() -> u8 {
+fn read_char(read: &mut dyn Read) -> u8 {
     let mut ret: [u8; 1] = [0];
-    std::io::stdin().read_exact(&mut ret).unwrap_or_else(|_| std::process::exit(0));
+    read.read_exact(&mut ret).unwrap_or_else(|_| std::process::exit(0));
     ret[0]
 }
 
@@ -23,6 +23,7 @@ fn main() {
     let mut buf: Vec<u8> = bf_init();
     let mut i: usize = 0;
     let mut p: usize = 0;
+    let mut stdin = std::io::stdin().lock();
     loop {
         match v.get(i) {
             None => { break; },
@@ -33,7 +34,7 @@ fn main() {
                 buf[p] = buf[p].wrapping_sub(1);
             },
             Some(44) => { // ,
-                buf[p] = read_char();
+                buf[p] = read_char(&mut stdin);
             },
             Some(46) => { // .
                 print!("{}", char::from(buf[p]));
