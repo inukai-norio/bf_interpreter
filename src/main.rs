@@ -1,56 +1,55 @@
 use std::io::Read;
-
-fn read_char(read: &mut dyn Read) -> u8 {
-    let mut ret: [u8; 1] = [0];
-    read.read_exact(&mut ret).unwrap_or_else(|_| std::process::exit(0));
-    ret[0]
+struct Bf<'a> {
+    v: Vec<u8>,
+    buf: Vec<u8>,
+    i: usize,
+    p: u16,
+    read: std::io::StdinLock<'a>,
 }
 
-fn bf_open() -> Vec<u8> {
-    let file_path: String = std::env::args().nth(1).unwrap();
-
-    let contents = std::fs::read_to_string(file_path)
-        .expect("Should have been able to read the file");
-    contents.into_bytes()
-}
-
-fn bf_init() -> Vec<u8> {
-    vec![0u8; 65536]
-}
-
-fn main() {
-    let v: Vec<u8> = bf_open();
-    let mut buf: Vec<u8> = bf_init();
-    let mut i: usize = 0;
-    let mut p: u16 = 0;
-    let mut stdin = std::io::stdin().lock();
-    loop {
-        match v.get(i) {
-            None => { break; },
+impl Bf<'_> {
+    fn new() -> Self {
+        Bf {
+            v: std::fs::read(std::env::args().nth(1).unwrap())
+                .expect("Should have been able to read the file"),
+            buf: vec![0u8; 65536],
+            i: 0,
+            p: 0,
+            read: std::io::stdin().lock(),
+        }
+    }
+    fn read_char(&mut self) -> u8 {
+        let mut ret: [u8; 1] = [0];
+        self.read.read_exact(&mut ret).unwrap_or_else(|_| std::process::exit(0));
+        ret[0]
+    }
+    pub fn exec(&mut self) -> bool {
+        match self.v.get(self.i) {
+            None => { return false; },
             Some(43) => { // +
-                buf[p as usize] = buf[p as usize].wrapping_add(1);
+                self.buf[self.p as usize] = self.buf[self.p as usize].wrapping_add(1);
             },
             Some(45) => { // -
-                buf[p as usize] = buf[p as usize].wrapping_sub(1);
+                self.buf[self.p as usize] = self.buf[self.p as usize].wrapping_sub(1);
             },
             Some(44) => { // ,
-                buf[p as usize] = read_char(&mut stdin);
+                self.buf[self.p as usize] = self.read_char();
             },
             Some(46) => { // .
-                print!("{}", char::from(buf[p as usize]));
+                print!("{}", char::from(self.buf[self.p as usize]));
             },
             Some(62) => { // >
-                p = p.wrapping_add(1);
+                self.p = self.p.wrapping_add(1);
             },
             Some(60) => { // <
-                p = p.wrapping_sub(1);
+                self.p = self.p.wrapping_sub(1);
             },
             Some(91) => { // [
-                if buf[p as usize] == 0 {
+                if self.buf[self.p as usize] == 0 {
                     let mut s: usize = 0;
                     loop {
-                        i += 1;
-                        let m = v.get(i);
+                        self.i += 1;
+                        let m = self.v.get(self.i);
                         if m == Some(&93) { // ]
                             if s == 0 {
                                 break;
@@ -65,8 +64,8 @@ fn main() {
             Some(93) => { // ]
                 let mut s: usize = 0;
                 loop {
-                    i -= 1;
-                    let m = v.get(i);
+                    self.i -= 1;
+                    let m = self.v.get(self.i);
                     if m == Some(&91) { // [
                         if s == 0 {
                             break;
@@ -76,12 +75,21 @@ fn main() {
                         s += 1;
                     }
                 }
-                i -= 1;
+                self.i -= 1;
             },
             _ => {},
         }
-        i += 1;
+        self.i += 1;
+        true
     }
+}
 
+fn main() {
+    let mut bf = Bf::new();
+    loop {
+        if bf.exec() == false {
+            break;
+        }
+    }
     println!("");
 }
