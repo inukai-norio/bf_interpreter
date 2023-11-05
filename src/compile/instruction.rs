@@ -10,28 +10,52 @@ pub struct Instruction {
 
 pub fn to_nojump_instruction_codes(codes: Vec<u8>) -> Vec<Instruction> {
     let mut buf: Vec<Instruction> = Vec::new();
-    for code in codes {
+    let mut codes_iter = codes.iter().peekable();
+    loop {
+        let code_op = codes_iter.next();
+        if code_op == None {
+            break;
+        }
+        let code: &u8 = code_op.unwrap();
         match code {
-            43 => { // +
-                buf.push(Instruction { num: 1, arg: 1 });
-            },
-            45 => { // -
-                buf.push(Instruction { num: 2, arg: 1 });
-            },
             44 => { // ,
                 buf.push(Instruction { num: 6, arg: 0 });
             },
             46 => { // .
-                buf.push(Instruction { num: 5, arg: 0 });
+                buf.push(Instruction { num: 5, arg: 0 }); 
             },
-            62 => { // >
-                buf.push(Instruction { num: 3, arg: 1 });
-            },
-            60 => { // <
-                buf.push(Instruction { num: 4, arg: 1 });
-            },
-            _ => {},
+            _ => {
+                let mut i = 1;
+                loop {
+                    if let Some(c) = codes_iter.peek() {
+                        if code == *c {
+                            let _ = codes_iter.next();
+                        } else {
+                            break;
+                        }
+                    } else {
+                        break;
+                    }
+                    i += 1;
+                }
+                match code {
+                    43 => { // +
+                        buf.push(Instruction { num: 1, arg: i });
+                    },
+                    45 => { // -
+                        buf.push(Instruction { num: 2, arg: i });
+                    },
+                    62 => { // >
+                        buf.push(Instruction { num: 3, arg: i });
+                    },
+                    60 => { // <
+                        buf.push(Instruction { num: 4, arg: i });
+                    },
+                    _ => {},
+                }
+            }
         }
+        
     }
     buf
 }
@@ -202,5 +226,25 @@ mod to_instruction_codes_test {
         assert_eq!(b[17], Instruction { num: 4, arg: 1 });
         assert_eq!(b[18], Instruction { num: 1, arg: 1 });
         assert_eq!(b[19], Instruction { num: 7, arg: 1 });
+    }
+
+    #[test]
+    fn t6() {
+        let v: Vec<u8> = "++++++++[>++++++++<-]>+.".as_bytes().to_vec();
+        let a = to_node_bf(v);
+        let b = to_instruction_codes(a, 0);
+
+        assert_eq!(b.len(), 10);
+
+        assert_eq!(b[0], Instruction { num: 1, arg: 8 });
+        assert_eq!(b[1], Instruction { num: 8, arg: 7 });
+        assert_eq!(b[2], Instruction { num: 3, arg: 1 });
+        assert_eq!(b[3], Instruction { num: 1, arg: 8 });
+        assert_eq!(b[4], Instruction { num: 4, arg: 1 });
+        assert_eq!(b[5], Instruction { num: 2, arg: 1 });
+        assert_eq!(b[6], Instruction { num: 7, arg: 1 });
+        assert_eq!(b[7], Instruction { num: 3, arg: 1 });
+        assert_eq!(b[8], Instruction { num: 1, arg: 1 });
+        assert_eq!(b[9], Instruction { num: 5, arg: 0 });
     }
 }
